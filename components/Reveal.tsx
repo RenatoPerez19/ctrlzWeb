@@ -13,7 +13,7 @@ export default function Reveal({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
+  useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
@@ -37,8 +37,13 @@ export default function Reveal({
       clearTimeout(timeout);
     };
   }, []);
+
   return (
-    <div id={id} ref={ref} className={`reveal section-anchor ${className}`}>
+    <div
+      id={id}
+      ref={ref}
+      className={`reveal section-anchor w-full min-w-0 ${className}`}
+    >
       {children}
     </div>
   );

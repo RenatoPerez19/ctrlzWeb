@@ -1,5 +1,5 @@
 import Reveal from "./Reveal";
-import ProductoCard from "./ProductoCard";
+import ProductosFiltrados from "./ProductosFiltrados";
 import { getProductosPorCategoria } from "@/lib/invid-api";
 import { CONTACTO } from "@/lib/site-data";
 
@@ -37,19 +37,8 @@ export default async function Productos() {
           </a>
         </div>
       ) : (
-        <div className="mt-12 flex flex-col gap-14">
-          {categorias.map((categoria) => (
-            <div key={categoria}>
-              <h3 className="font-heading text-xl font-bold text-white md:text-2xl">
-                {categoria}
-              </h3>
-              <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {agrupado[categoria].map((producto) => (
-                  <ProductoCard key={producto.id} producto={producto} />
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="mt-10">
+          <ProductosFiltrados agrupado={agrupado} categorias={categorias} />
         </div>
       )}
     </Reveal>
