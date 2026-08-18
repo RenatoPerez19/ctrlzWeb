@@ -8,140 +8,47 @@ export type Producto = {
   imagen: string | null;
 };
 
-const SITE_ORIGIN = "https://www.invidcomputers.com";
-const BASE_URL = process.env.INVID_API_BASE_URL ?? `${SITE_ORIGIN}/api/v1`;
+const BASE_URL =
+  process.env.INVID_API_BASE_URL ?? "https://www.invidcomputers.com/api/v1";
 const API_USER = process.env.INVID_API_USER;
 const API_PASS = process.env.INVID_API_PASS;
 
-// Revalida el catálogo cada hora: suficiente para que se vean altas/bajas de
-// productos sin pegarle a la API en cada visita, y sin exponer nunca el
-// token/credenciales al navegador (todo esto corre en el servidor).
+// Revalida el catálogo cada hora: alcanza para ver altas/bajas de productos
+// sin acercarse al límite de 50 requests/hora que impone la API, y las
+// credenciales/token nunca llegan al navegador (todo esto corre en el server).
 const REVALIDATE_SECONDS = 3600;
 
-/**
- * Busca un token en formas de respuesta habituales de APIs .NET/Node:
- * { token }, { accessToken }, { access_token }, { data: { token } }, etc.
- * Documentación real del proveedor no disponible al momento de integrar
- * (ver README) — si el login real usa otro nombre de campo, ajustar acá.
- */
-function extractToken(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-  const obj = payload as Record<string, unknown>;
-  const directKeys = [
-    "token",
-    "Token",
-    "accessToken",
-    "AccessToken",
-    "access_token",
-    "jwt",
-    "Jwt",
-  ];
-  for (const key of directKeys) {
-    const val = obj[key];
-    if (typeof val === "string" && val.length > 0) return val;
-  }
-  const nested = obj["data"] ?? obj["result"] ?? obj["resultado"];
-  if (nested && typeof nested === "object") {
-    return extractToken(nested);
-  }
-  return null;
-}
+// GET /articulo.php pagina de a 100 resultados. Un tope defensivo para no
+// gastar de más la cuota de 50 requests/hora si el catálogo es enorme.
+const MAX_PAGINAS = 10;
 
-/**
- * Normaliza la respuesta de /articulo a un array, sin importar si viene
- * como array plano o envuelta en { data: [...] } / { items: [...] } / etc.
- */
-function extractArray(payload: unknown): unknown[] {
-  if (Array.isArray(payload)) return payload;
-  if (!payload || typeof payload !== "object") return [];
-  const obj = payload as Record<string, unknown>;
-  const candidates = ["data", "items", "articulos", "result", "resultado"];
-  for (const key of candidates) {
-    const val = obj[key];
-    if (Array.isArray(val)) return val;
-  }
-  return [];
-}
+type AuthSuccess = {
+  status: 1;
+  access_token: string;
+  token_type: string;
+  expiration_time: number;
+  username: string;
+};
 
-function firstString(
-  obj: Record<string, unknown>,
-  keys: string[]
-): string | null {
-  for (const key of keys) {
-    const val = obj[key];
-    if (typeof val === "string" && val.trim().length > 0) return val.trim();
-    if (Array.isArray(val) && typeof val[0] === "string") return val[0];
-    if (val && typeof val === "object") {
-      const nestedUrl = (val as Record<string, unknown>)["url"];
-      if (typeof nestedUrl === "string") return nestedUrl;
-    }
-  }
-  return null;
-}
+type ErrorResponse = {
+  status: 0;
+  message: string;
+};
 
-function resolveImageUrl(raw: string | null): string | null {
-  if (!raw) return null;
-  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
-  return `${SITE_ORIGIN}${raw.startsWith("/") ? "" : "/"}${raw}`;
-}
+type ArticuloApi = {
+  ID: string;
+  TITLE: string;
+  DESCRIPTION: string | null;
+  LONG_DESCRIPTION: string | null;
+  IMAGE_URL: string | null;
+  CATEGORY: string | null;
+};
 
-function normalizeProducto(raw: unknown, index: number): Producto | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as Record<string, unknown>;
-
-  const nombre = firstString(obj, [
-    "nombre",
-    "Nombre",
-    "name",
-    "titulo",
-    "Titulo",
-    "descripcionCorta",
-  ]);
-  if (!nombre) return null;
-
-  const descripcion =
-    firstString(obj, [
-      "descripcion",
-      "Descripcion",
-      "description",
-      "detalle",
-      "Detalle",
-      "observaciones",
-    ]) ?? "";
-
-  const categoria =
-    firstString(obj, [
-      "categoria",
-      "Categoria",
-      "category",
-      "rubro",
-      "Rubro",
-      "familia",
-      "Familia",
-    ]) ?? "Otros";
-
-  const imagen = resolveImageUrl(
-    firstString(obj, [
-      "imagen",
-      "Imagen",
-      "image",
-      "imagenUrl",
-      "ImagenUrl",
-      "foto",
-      "Foto",
-      "urlImagen",
-      "imagenes",
-      "Imagenes",
-      "picture",
-    ])
-  );
-
-  const id =
-    firstString(obj, ["id", "Id", "codigo", "Codigo", "sku", "Sku"]) ??
-    `${index}-${nombre}`;
-
-  return { id, nombre, descripcion, categoria, imagen };
-}
+type ArticuloResponse = {
+  status: 1;
+  data: ArticuloApi | ArticuloApi[];
+  next_page_url?: string | null;
+};
 
 async function login(): Promise<string | null> {
   if (!API_USER || !API_PASS) {
@@ -152,62 +59,77 @@ async function login(): Promise<string | null> {
   }
 
   try {
-    const res = await fetch(`${BASE_URL}/auth`, {
+    const res = await fetch(`${BASE_URL}/auth.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ usuario: API_USER, clave: API_PASS }),
-      // Se revalida junto con el catálogo, así no se re-loguea en cada
-      // visita (ver REVALIDATE_SECONDS).
+      body: JSON.stringify({ username: API_USER, password: API_PASS }),
       next: { revalidate: REVALIDATE_SECONDS },
     });
 
+    const payload = await res.json();
+
     if (!res.ok) {
+      const err = payload as ErrorResponse;
       console.error(
-        `[invid-api] Login falló con status ${res.status} ${res.statusText}`
+        `[invid-api] Login falló (${res.status}): ${err.message ?? res.statusText}`
       );
       return null;
     }
 
-    const payload = await res.json();
-    const token = extractToken(payload);
-    if (!token) {
-      console.error(
-        "[invid-api] No se encontró un token en la respuesta de /auth. Revisar el shape real de la respuesta."
-      );
-    }
-    return token;
+    return (payload as AuthSuccess).access_token;
   } catch (err) {
     console.error("[invid-api] Error de red en login:", err);
     return null;
   }
 }
 
-async function fetchArticulos(token: string): Promise<unknown[]> {
+async function fetchPagina(
+  token: string,
+  offset: number
+): Promise<{ items: ArticuloApi[]; hayMas: boolean }> {
+  const url =
+    `${BASE_URL}/articulo.php` +
+    `?exclude_zero_price=1&exclude_zero_stock=1&published_only=1&offset=${offset}`;
+
   try {
-    const res = await fetch(`${BASE_URL}/articulo`, {
+    const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
       next: { revalidate: REVALIDATE_SECONDS },
     });
 
+    const payload = await res.json();
+
     if (!res.ok) {
+      const err = payload as ErrorResponse;
       console.error(
-        `[invid-api] GET /articulo falló con status ${res.status} ${res.statusText}`
+        `[invid-api] GET articulo.php falló (${res.status}): ${err.message ?? res.statusText}`
       );
-      return [];
+      return { items: [], hayMas: false };
     }
 
-    const payload = await res.json();
-    return extractArray(payload);
+    const { data, next_page_url } = payload as ArticuloResponse;
+    const items = Array.isArray(data) ? data : [data];
+    return { items, hayMas: Boolean(next_page_url) };
   } catch (err) {
-    console.error("[invid-api] Error de red obteniendo /articulo:", err);
-    return [];
+    console.error("[invid-api] Error de red obteniendo articulo.php:", err);
+    return { items: [], hayMas: false };
   }
 }
 
+function normalizeProducto(raw: ArticuloApi): Producto {
+  return {
+    id: raw.ID,
+    nombre: raw.TITLE,
+    descripcion: raw.LONG_DESCRIPTION || raw.DESCRIPTION || "",
+    categoria: raw.CATEGORY || "Otros",
+    imagen: raw.IMAGE_URL || null,
+  };
+}
+
 /**
- * Trae todos los productos y los agrupa por categoría.
- * Nunca lanza: si la API falla, devuelve un objeto vacío para que la UI
- * pueda mostrar un estado de fallback en vez de romper la página.
+ * Trae todos los productos (paginando de a 100) y los agrupa por categoría.
+ * Nunca lanza: si el login o el fetch fallan, devuelve un objeto vacío para
+ * que la UI muestre un estado de fallback en vez de romper la página.
  */
 export const getProductosPorCategoria = cache(async (): Promise<
   Record<string, Producto[]>
@@ -215,10 +137,15 @@ export const getProductosPorCategoria = cache(async (): Promise<
   const token = await login();
   if (!token) return {};
 
-  const raw = await fetchArticulos(token);
-  const productos = raw
-    .map((item, i) => normalizeProducto(item, i))
-    .filter((p): p is Producto => p !== null);
+  const productos: Producto[] = [];
+  let offset = 0;
+
+  for (let pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+    const { items, hayMas } = await fetchPagina(token, offset);
+    productos.push(...items.map(normalizeProducto));
+    if (!hayMas) break;
+    offset += 100;
+  }
 
   const agrupado: Record<string, Producto[]> = {};
   for (const producto of productos) {
