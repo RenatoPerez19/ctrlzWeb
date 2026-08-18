@@ -66,9 +66,9 @@ export const SERVICIOS = [
 ];
 
 export const STATS = [
-  { numero: "+500", etiqueta: "equipos reparados" },
-  { numero: "2", etiqueta: "zonas de cobertura" },
-  { numero: "24hs", etiqueta: "respuesta por WhatsApp" },
+  { valor: 48, prefijo: "+", sufijo: "", etiqueta: "servicios realizados" },
+  { valor: 2, prefijo: "", sufijo: "", etiqueta: "zonas de cobertura" },
+  { valor: 24, prefijo: "", sufijo: "hs", etiqueta: "respuesta por WhatsApp" },
 ];
 
 export const UBICACIONES = [
