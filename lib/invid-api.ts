@@ -99,7 +99,7 @@ async function fetchPagina(
 
     const payload = await res.json();
 
-        if (!res.ok) {
+    if (!res.ok) {
       const err = payload as ErrorResponse;
       const retryAfter = res.headers.get("Retry-After");
       const detalle = retryAfter
@@ -120,12 +120,66 @@ async function fetchPagina(
   }
 }
 
+// Algunos campos del proveedor (título, categoría, descripción) traen HTML
+// crudo pegado (incluso <script> de tracking). Lo limpiamos antes de mostrar
+// nada en la web.
+const ENTIDADES_HTML: Record<string, string> = {
+  nbsp: " ",
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  aacute: "á",
+  eacute: "é",
+  iacute: "í",
+  oacute: "ó",
+  uacute: "ú",
+  uuml: "ü",
+  Aacute: "Á",
+  Eacute: "É",
+  Iacute: "Í",
+  Oacute: "Ó",
+  Uacute: "Ú",
+  Uuml: "Ü",
+  ntilde: "ñ",
+  Ntilde: "Ñ",
+  iquest: "¿",
+  iexcl: "¡",
+  ordm: "º",
+  ordf: "ª",
+  deg: "°",
+  middot: "·",
+  hellip: "…",
+  mdash: "—",
+  ndash: "–",
+};
+
+function decodificarEntidades(texto: string): string {
+  return texto
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number(dec)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
+      String.fromCharCode(parseInt(hex, 16))
+    )
+    .replace(/&([a-zA-Z]+);/g, (m, nombre) => ENTIDADES_HTML[nombre] ?? m);
+}
+
+function limpiarHtml(raw: string | null): string {
+  if (!raw) return "";
+  const sinScripts = raw.replace(
+    /<(script|style)[^>]*>[\s\S]*?<\/\1>/gi,
+    " "
+  );
+  const sinTags = sinScripts.replace(/<[^>]+>/g, " ");
+  return decodificarEntidades(sinTags).replace(/\s+/g, " ").trim();
+}
+
 function normalizeProducto(raw: ArticuloApi): Producto {
   return {
     id: raw.ID,
-    nombre: raw.TITLE,
-    descripcion: raw.LONG_DESCRIPTION || raw.DESCRIPTION || "",
-    categoria: raw.CATEGORY || "Otros",
+    nombre: limpiarHtml(raw.TITLE),
+    descripcion: limpiarHtml(raw.LONG_DESCRIPTION || raw.DESCRIPTION),
+    categoria: limpiarHtml(raw.CATEGORY) || "Otros",
     imagen: raw.IMAGE_URL || null,
   };
 }
