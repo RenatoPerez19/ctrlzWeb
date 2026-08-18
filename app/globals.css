@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-base: #0d0d0d;
+  --color-elevated: #141414;
+  --color-accent: #b9f227;
+  --color-accent-hover: #d4ff5c;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #b5b5b5;
+  --color-text-tertiary: #9a9a9a;
+  --color-text-dim: #6a6a6a;
+
+  --font-heading: var(--font-montserrat), sans-serif;
+  --font-mono-heading: var(--font-montserrat), monospace;
+  --font-body: var(--font-raleway), sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-base);
+    color: var(--color-text-primary);
+  }
+
+  a {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--color-accent-hover);
+  }
+}
+
+.section-anchor {
+  scroll-margin-top: 88px;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee 32s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@media (max-width: 767px) {
+  .marquee-track {
+    animation-duration: 22s;
+  }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+
+.reveal.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .marquee-track {
+    animation: none;
+  }
+}
