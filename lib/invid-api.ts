@@ -99,10 +99,14 @@ async function fetchPagina(
 
     const payload = await res.json();
 
-    if (!res.ok) {
+        if (!res.ok) {
       const err = payload as ErrorResponse;
+      const retryAfter = res.headers.get("Retry-After");
+      const detalle = retryAfter
+        ? `${err.message ?? res.statusText} — reintentar en ${retryAfter}s`
+        : err.message ?? res.statusText;
       console.error(
-        `[invid-api] GET articulo.php falló (${res.status}): ${err.message ?? res.statusText}`
+        `[invid-api] GET articulo.php falló (${res.status}): ${detalle}`
       );
       return { items: [], hayMas: false };
     }
