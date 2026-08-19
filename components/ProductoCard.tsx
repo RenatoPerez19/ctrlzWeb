@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { CONTACTO, waLink } from "@/lib/site-data";
 import type { Producto } from "@/lib/invid-api";
 
@@ -109,45 +110,47 @@ export default function ProductoCard({ producto }: { producto: Producto }) {
         </div>
       </div>
 
-      {abierto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-          onClick={() => setAbierto(false)}
-        >
+      {abierto &&
+        createPortal(
           <div
-            className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-[20px] border border-white/8 bg-elevated"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={() => setAbierto(false)}
           >
-            <div className="relative">
-              <ImagenProducto
-                producto={producto}
-                className="flex h-[260px] w-full items-center justify-center bg-base/60"
-              />
-              <button
-                type="button"
-                onClick={() => setAbierto(false)}
-                aria-label="Cerrar"
-                className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-base/80 text-lg text-white hover:text-accent"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-7">
-              <div className="font-heading text-xl font-bold text-white">
-                {producto.nombre}
+            <div
+              className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-[20px] border border-white/8 bg-elevated"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative">
+                <ImagenProducto
+                  producto={producto}
+                  className="flex h-[260px] w-full items-center justify-center bg-base/60"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAbierto(false)}
+                  aria-label="Cerrar"
+                  className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-base/80 text-lg text-white hover:text-accent"
+                >
+                  ✕
+                </button>
               </div>
-              {producto.descripcion && (
-                <div className="mt-3 font-body text-sm leading-relaxed text-text-tertiary">
-                  {producto.descripcion}
+              <div className="p-7">
+                <div className="font-heading text-xl font-bold text-white">
+                  {producto.nombre}
                 </div>
-              )}
-              <div className="mt-6">
-                <BotonesContacto producto={producto} tamano="base" />
+                {producto.descripcion && (
+                  <div className="mt-3 font-body text-sm leading-relaxed text-text-tertiary">
+                    {producto.descripcion}
+                  </div>
+                )}
+                <div className="mt-6">
+                  <BotonesContacto producto={producto} tamano="base" />
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }
