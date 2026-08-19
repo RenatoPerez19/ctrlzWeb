@@ -54,8 +54,17 @@ function buscarSugerencia(
 
     let sumaDistancias = 0;
     for (const pq of palabrasQuery) {
+      // Solo compara contra palabras que empiecen con la misma letra: un
+      // typo real casi nunca cambia la primera letra, y esto evita
+      // sugerencias sin sentido como "nvidia" -> "video".
+      const candidatas = palabrasNombre.filter((pn) => pn[0] === pq[0]);
+      if (candidatas.length === 0) {
+        sumaDistancias = Infinity;
+        break;
+      }
+
       let mejorParaEstaPalabra = Infinity;
-      for (const pn of palabrasNombre) {
+      for (const pn of candidatas) {
         const distancia = distanciaLevenshtein(pq, pn);
         if (distancia < mejorParaEstaPalabra) mejorParaEstaPalabra = distancia;
       }
@@ -70,14 +79,13 @@ function buscarSugerencia(
 
   const longitudPromedio =
     palabrasQuery.reduce((acc, p) => acc + p.length, 0) / palabrasQuery.length;
-  const umbral = Math.max(2, Math.ceil(longitudPromedio * 0.45));
+  const umbral = Math.max(1, Math.floor(longitudPromedio * 0.4));
 
   if (mejor && mejor.puntaje <= umbral) {
     return mejor.producto;
   }
   return null;
 }
-
 export default function ProductosFiltrados({
   agrupado,
   categorias,
