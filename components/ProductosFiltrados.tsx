@@ -95,6 +95,11 @@ export default function ProductosFiltrados({
 }) {
   const [seleccionada, setSeleccionada] = useState(categorias[0]);
   const [busqueda, setBusqueda] = useState("");
+  const [columnasMobile, setColumnasMobile] = useState<1 | 2>(1);
+
+  const gridClassName = `mt-8 grid gap-4 sm:gap-6 ${
+    columnasMobile === 2 ? "grid-cols-2" : "grid-cols-1"
+  } sm:grid-cols-2 lg:grid-cols-3`;
 
   const todosLosProductos = useMemo(
     () => categorias.flatMap((c) => agrupado[c]),
@@ -162,9 +167,39 @@ export default function ProductosFiltrados({
         </div>
       )}
 
+      <div className="mt-6 flex items-center justify-end gap-2 sm:hidden">
+        <span className="font-heading text-xs text-text-dim">Ver:</span>
+        <button
+          type="button"
+          onClick={() => setColumnasMobile(1)}
+          aria-label="Ver en 1 columna"
+          aria-pressed={columnasMobile === 1}
+          className={`rounded-lg border px-3 py-1.5 font-heading text-xs font-semibold transition-colors ${
+            columnasMobile === 1
+              ? "border-accent bg-accent text-[#0D0D0D]"
+              : "border-white/25 text-white hover:border-accent hover:text-accent"
+          }`}
+        >
+          1
+        </button>
+        <button
+          type="button"
+          onClick={() => setColumnasMobile(2)}
+          aria-label="Ver en 2 columnas"
+          aria-pressed={columnasMobile === 2}
+          className={`rounded-lg border px-3 py-1.5 font-heading text-xs font-semibold transition-colors ${
+            columnasMobile === 2
+              ? "border-accent bg-accent text-[#0D0D0D]"
+              : "border-white/25 text-white hover:border-accent hover:text-accent"
+          }`}
+        >
+          2
+        </button>
+      </div>
+
       {buscando ? (
         resultados.length > 0 ? (
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={gridClassName}>
             {resultados.map((producto) => (
               <ProductoCard key={producto.id} producto={producto} />
             ))}
@@ -186,7 +221,7 @@ export default function ProductosFiltrados({
           </div>
         )
       ) : (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={gridClassName}>
           {agrupado[seleccionada].map((producto) => (
             <ProductoCard key={producto.id} producto={producto} />
           ))}

@@ -1,7 +1,19 @@
 export default function Hero() {
   return (
-    <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden px-6 py-20 md:min-h-[70vh] md:px-12 md:py-24">
-      <div className="pointer-events-none absolute -top-40 -right-40 h-[560px] w-[560px] rounded-full bg-accent opacity-[0.08]" />
+    <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden px-6 py-20 md:min-h-[85vh] md:px-12 md:py-24">
+      <div className="pointer-events-none absolute -top-40 -right-40 h-[560px] w-[560px] rounded-full bg-accent opacity-[0.08] md:hidden" />
+
+      <div className="pointer-events-none absolute inset-0 hidden md:block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/hero-desktop-bg.jpg"
+          alt=""
+          className="h-full w-full object-cover object-right"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-base via-base/85 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-base to-transparent" />
+      </div>
+
       <div className="relative z-10 w-full max-w-[1100px]">
         <div className="mb-4 font-mono-heading text-sm text-text-tertiary">
           {"// insumos y servicio técnico"}
