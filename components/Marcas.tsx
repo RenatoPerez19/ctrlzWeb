@@ -24,9 +24,14 @@ export default function Marcas() {
           {logosX2.map((logo, i) => (
             <div
               key={`${logo.slug}-${i}`}
-              className="mr-4 flex h-[80px] w-[130px] flex-none items-center justify-center rounded-2xl bg-white px-4 text-center font-heading text-sm font-bold text-[#0D0D0D] md:h-[100px] md:w-[170px] md:text-base"
+              className="mr-4 flex h-[80px] w-[130px] flex-none items-center justify-center rounded-2xl bg-white p-4 md:h-[100px] md:w-[170px]"
             >
-              {logo.name}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/logos/${logo.slug}.jpg`}
+                alt={logo.name}
+                className="max-h-full max-w-full object-contain"
+              />
             </div>
           ))}
         </div>
